@@ -179,7 +179,7 @@ This project can be extended for:
 - Security event analysis
 - Cybersecurity-focused ML experimentation
 
-## Future Improvements
+## Extra Features
 
 - Real-time streaming inference
 - Model versioning and experiment tracking
