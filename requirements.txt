@@ -1,11 +1,12 @@
 python-dotenv
 pandas
 numpy
-pymongo[srv]==3.12
-pymongo
+pymongo[srv]==3.12.0
 certifi
-scikit-learn
-pyaml
+scikit-learn==1.8.0
+scipy
+PyYAML
+Jinja2
 dill
 mlflow
 dagshub
