@@ -1,10 +1,17 @@
+import os
+
+from dotenv import load_dotenv
 from pymongo.mongo_client import MongoClient
 from pymongo.server_api import ServerApi
 
-uri = "mongodb+srv://srijancodes:Srijan3345@cluster0.tws5k1v.mongodb.net/?appName=Cluster0"
+load_dotenv()
+
+uri = os.getenv("MONGO_DB_URL") or os.getenv("MONGODB_URL_KEY")
+if not uri:
+    raise ValueError("MongoDB connection string is not set in the environment.")
 
 # Create a new client and connect to the server
-client = MongoClient(uri, server_api=ServerApi('1'))
+client = MongoClient(uri, server_api=ServerApi("1"))
 
 # Send a ping to confirm a successful connection
 try:
