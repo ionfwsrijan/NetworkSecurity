@@ -1,14 +1,10 @@
 import sys
 import os
 
-import certifi
-ca = certifi.where()
-
 from dotenv import load_dotenv
 load_dotenv()
 mongo_db_url = os.getenv("MONGO_DB_URL") or os.getenv("MONGODB_URL_KEY")
 app_port = int(os.getenv("PORT", "8000"))
-import pymongo
 from networksecurity.exception.exception import NetworkSecurityException
 from networksecurity.logging.logger import logging
 from networksecurity.pipeline.training_pipeline import TrainingPipeline
@@ -23,15 +19,6 @@ import pandas as pd
 from networksecurity.utils.main_utils.utils import load_object
 
 from networksecurity.utils.ml_utils.model.estimator import NetworkModel
-
-
-client = pymongo.MongoClient(mongo_db_url, tlsCAFile=ca)
-
-from networksecurity.constant.training_pipeline import DATA_INGESTION_COLLECTION_NAME
-from networksecurity.constant.training_pipeline import DATA_INGESTION_DATABASE_NAME
-
-database = client[DATA_INGESTION_DATABASE_NAME]
-collection = database[DATA_INGESTION_COLLECTION_NAME]
 
 app = FastAPI()
 origins = ["*"]
