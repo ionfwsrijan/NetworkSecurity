@@ -6,7 +6,7 @@ import numpy as np
 from networksecurity.exception.exception import NetworkSecurityException
 from networksecurity.logging.logger import logging
 from sklearn.model_selection import GridSearchCV
-from sklearn.metrics import r2_score
+from sklearn.metrics import f1_score
 
 def read_yaml_file(file_path:str) -> dict:
     try:
@@ -67,10 +67,11 @@ def evaluate_models(X_train, y_train, X_test, y_test, models, param):
         report = {}
 
         for i in range(len(list(models))):
+            model_name = list(models.keys())[i]
             model = list(models.values())[i]
-            para = param[list(models.keys())[i]]
+            para = param[model_name]
 
-            gs = GridSearchCV(model, para, cv=3)
+            gs = GridSearchCV(model, para, cv=3, scoring="f1")
             gs.fit(X_train, y_train)
 
             model.set_params(**gs.best_params_)
@@ -79,10 +80,16 @@ def evaluate_models(X_train, y_train, X_test, y_test, models, param):
             y_train_pred = model.predict(X_train)
             y_test_pred = model.predict(X_test)
 
-            train_model_score = r2_score(y_train, y_train_pred)
-            test_model_score = r2_score(y_test, y_test_pred)
+            train_model_score = f1_score(y_train, y_train_pred, zero_division=0)
+            test_model_score = f1_score(y_test, y_test_pred, zero_division=0)
 
-            report[list(models.keys())[i]] = test_model_score
+            logging.info(
+                "Model %s evaluated with F1 score. Train F1: %.4f, Test F1: %.4f",
+                model_name,
+                train_model_score,
+                test_model_score,
+            )
+            report[model_name] = test_model_score
         return report
     except Exception as e:
         raise NetworkSecurityException(e, sys)

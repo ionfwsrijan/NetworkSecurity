@@ -15,7 +15,6 @@ from networksecurity.utils.main_utils.utils import save_object, load_object
 from networksecurity.utils.main_utils.utils import load_numpy_array_data, evaluate_models
 
 from sklearn.linear_model import LogisticRegression
-from sklearn.metrics import r2_score
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier, AdaBoostClassifier
