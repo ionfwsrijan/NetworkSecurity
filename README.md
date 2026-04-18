@@ -1,195 +1,206 @@
-# Network Security ML Project
+# NetworkSecurity
 
-An end-to-end machine learning project for detecting and classifying network threats using structured data pipelines and supervised learning workflows. The project is organized around modular components for data ingestion, validation, transformation, model training, batch prediction, and deployment.
+End-to-end phishing website detection project built with Python, scikit-learn, MongoDB, FastAPI, and GitHub Actions.
 
-## Overview
+The project trains a classifier on structured phishing features, saves a preprocessor and model to `final_models/`, exposes prediction through a FastAPI app, and stores timestamped pipeline outputs under `Artifacts/`.
 
-This repository implements a production-style ML pipeline for cybersecurity use cases. It is designed to process network security data, validate schema and input quality, transform features, train predictive models, and serve results through an application layer.
+## What This Repo Does
 
-The codebase follows a modular architecture to improve maintainability, reproducibility, and deployment readiness.
+- Loads phishing data from MongoDB into the training pipeline
+- Validates input schema and train/test drift
+- Applies preprocessing with a saved scikit-learn pipeline
+- Trains multiple classification models and selects the best one by F1 score
+- Saves artifacts for reuse in inference
+- Serves predictions through a FastAPI endpoint
+- Syncs pipeline outputs and saved models to S3 during API-triggered training
 
-## Core Capabilities
-
-- Data ingestion from source files and MongoDB
-- Schema-based data validation
-- Data transformation and preprocessing
-- Model training and artifact generation
-- Batch prediction pipeline
-- Model and preprocessor persistence
-- Application interface for inference
-- Containerization support with Docker
-
-## Project Structure
+## Project Layout
 
 ```text
-NETWORKSECURITY/
-├── .github/workflows/
-│   └── main.yml
-├── Artifacts/
-│   ├── <timestamp>/
-│   │   ├── data_ingestion/
-│   │   ├── data_validation/
-│   │   ├── data_transformation/
-│   │   └── model_trainer/
-├── data_schema/
-│   └── schema.yaml
-├── final_models/
-│   ├── model.pkl
-│   └── preprocessor.pkl
-├── logs/
-├── Network_Data/
-│   └── pishingData.csv
-├── networksecurity/
-│   ├── cloud/
-│   │   └── s3_syncer.py
-│   ├── components/
-│   │   ├── data_ingestion.py
-│   │   ├── data_validation.py
-│   │   ├── data_transformation.py
-│   │   └── model_trainer.py
-│   ├── constant/
-│   ├── entity/
-│   │   ├── artifact_entity.py
-│   │   └── config_entity.py
-│   ├── exception/
-│   │   └── exception.py
-│   ├── logging/
-│   │   └── logger.py
-│   ├── pipeline/
-│   │   ├── batch_prediction.py
-│   │   └── training_pipeline.py
-│   └── utils/
-├── notebooks/
-├── prediction_output/
-│   └── output.csv
-├── templates/
-│   └── table.html
-├── valid_data/
-│   └── test.csv
-├── app.py
-├── Dockerfile
-├── main.py
-├── push_data.py
-├── README.md
-├── requirements.txt
-├── setup.py
-└── test_mongodb.py
+NetworkSecurity/
+|-- .github/workflows/main.yml
+|-- Artifacts/
+|-- data_schema/schema.yaml
+|-- final_models/
+|-- logs/
+|-- Network_Data/phisingData.csv
+|-- networksecurity/
+|   |-- cloud/s3_syncer.py
+|   |-- components/
+|   |-- constant/
+|   |-- entity/
+|   |-- exception/
+|   |-- logging/logger.py
+|   |-- pipeline/
+|   `-- utils/
+|-- prediction_output/
+|-- templates/table.html
+|-- app.py
+|-- Dockerfile
+|-- main.py
+|-- push_data.py
+|-- requirements.txt
+`-- setup.py
 ```
 
-## Architecture
+## Environment Variables
 
-The project is divided into the following layers:
+Set these in `.env` for local development or as secrets/env vars in deployment:
 
-### 1. Components
-The `components` package contains the core stages of the ML workflow:
-- `data_ingestion.py` handles loading data into the pipeline
-- `data_validation.py` validates schema and dataset consistency
-- `data_transformation.py` applies preprocessing and feature preparation
-- `model_trainer.py` trains and evaluates the selected models
+| Variable | Required | Purpose |
+| --- | --- | --- |
+| `MONGO_DB_URL` | Yes | Primary MongoDB connection string used by ingestion, training, and `push_data.py` |
+| `MONGODB_URL_KEY` | Optional | Fallback MongoDB variable supported by `app.py` |
+| `PORT` | Optional | FastAPI port, defaults to `8000` locally |
+| `TRAIN_API_KEY` | Optional | If set, `/train` requires an `x-api-key` header |
+| `AWS_ACCESS_KEY_ID` | For S3 sync/deploy | AWS credential used when training syncs artifacts to S3 |
+| `AWS_SECRET_ACCESS_KEY` | For S3 sync/deploy | AWS credential used when training syncs artifacts to S3 |
+| `AWS_REGION` | For S3 sync/deploy | AWS region for deployment and AWS CLI access |
 
-### 2. Entity and Configuration
-The `entity` package defines configuration and artifact classes used to standardize communication between pipeline stages.
+## Local Setup
 
-### 3. Pipeline
-The `pipeline` package orchestrates execution:
-- `training_pipeline.py` runs the end-to-end training workflow
-- `batch_prediction.py` handles inference on new input data
+1. Create and activate a virtual environment.
 
-### 4. Deployment and Integration
-- `app.py` exposes the model through an application layer
-- `Dockerfile` supports containerized deployment
-- `cloud/s3_syncer.py` provides cloud synchronization support
-
-## Data Flow
-
-The project follows this sequence:
-
-1. Raw network security data is loaded into the system
-2. Schema and structural checks are performed
-3. Features are transformed for training compatibility
-4. Models are trained and evaluated
-5. Serialized artifacts are saved for reuse
-6. New data is passed through the saved preprocessor and model for prediction
-
-## Technology Stack
-
-- **Language:** Python
-- **Libraries:** Pandas, NumPy, Scikit-learn
-- **Database:** MongoDB
-- **Deployment:** Flask/FastAPI-style app interface, Docker
-- **Version Control:** Git and GitHub
-
-## Setup
-
-### 1. Clone the repository
-
-```bash
-git clone https://github.com/your-username/network-security-ml-project.git
-cd network-security-ml-project
-```
-
-### 2. Create and activate a virtual environment
-
-```bash
+```powershell
 python -m venv venv
-venv\Scripts\activate
+venv\Scripts\Activate.ps1
 ```
 
-### 3. Install dependencies
+2. Install dependencies.
 
-```bash
+```powershell
 pip install -r requirements.txt
 ```
 
-## Running the Project
+3. Add a `.env` file.
 
-### Run the training pipeline
-
-```bash
-python main.py
+```env
+MONGO_DB_URL="your-mongodb-connection-string"
+PORT=8000
+TRAIN_API_KEY=your-optional-train-key
 ```
 
-### Run the application
+## Load Data Into MongoDB
 
-```bash
-python app.py
-```
+If your MongoDB collection is empty, push the local CSV dataset into MongoDB first:
 
-### Run the MongoDB data push script
-
-```bash
+```powershell
 python push_data.py
 ```
 
+This reads `Network_Data/phisingData.csv` and inserts it into:
+
+- database: `NetworkSecurity`
+- collection: `NetworkData`
+
+## Training Options
+
+### Option 1: Run the local training script
+
+```powershell
+python main.py
+```
+
+This runs the component flow directly:
+
+1. Data ingestion
+2. Data validation
+3. Data transformation
+4. Model training
+
+Outputs are written under `Artifacts/<timestamp>/` and `final_models/`.
+
+### Option 2: Trigger training through the API
+
+Start the app:
+
+```powershell
+python app.py
+```
+
+Then call the training endpoint:
+
+```powershell
+Invoke-WebRequest `
+  -Method Post `
+  -Uri "http://127.0.0.1:8000/train" `
+  -Headers @{ "x-api-key" = "your-optional-train-key" }
+```
+
+Notes:
+
+- If `TRAIN_API_KEY` is not set, the `x-api-key` header is not required.
+- API-triggered training uses `TrainingPipeline.run_pipeline()`, which also syncs:
+  - `Artifacts/<timestamp>/` to `s3://netsecmlops/artifact/<timestamp>`
+  - `final_models/` to `s3://netsecmlops/final_models/<timestamp>`
+
+## Prediction Usage
+
+Start the FastAPI app:
+
+```powershell
+python app.py
+```
+
+Open the docs UI:
+
+- `http://127.0.0.1:8000/docs`
+
+Or upload a CSV directly to `/predict`:
+
+```powershell
+curl -X POST "http://127.0.0.1:8000/predict" ^
+  -H "accept: text/html" ^
+  -H "Content-Type: multipart/form-data" ^
+  -F "file=@valid_data/test.csv"
+```
+
+Behavior:
+
+- The app loads `final_models/preprocessor.pkl` and `final_models/model.pkl` once at startup
+- Predictions are rendered as an HTML table
+- A CSV copy is saved to `prediction_output/output.csv`
+
+## Training Flow
+
+The pipeline works in this order:
+
+1. `data_ingestion.py`
+   Reads records from MongoDB, exports a feature-store CSV, and performs a stratified train/test split.
+2. `data_validation.py`
+   Validates expected columns from `data_schema/schema.yaml` and writes a drift report.
+3. `data_transformation.py`
+   Applies a `KNNImputer` preprocessing pipeline and saves transformed arrays plus the preprocessor.
+4. `model_trainer.py`
+   Trains several classifiers, selects the best one by F1 score, logs metrics to MLflow/DagsHub, and saves the final model.
+
 ## Outputs
 
-During execution, the project generates:
+Main generated outputs:
 
-- Timestamped pipeline artifacts under `Artifacts/`
-- Trained model and preprocessor files under `final_models/`
-- Log files under `logs/`
-- Prediction results under `prediction_output/output.csv`
+- `Artifacts/<timestamp>/...`
+- `final_models/model.pkl`
+- `final_models/preprocessor.pkl`
+- `prediction_output/output.csv`
+- `logs/<timestamp>.log`
 
-## Use Cases
+## CI/CD
 
-This project can be extended for:
+GitHub Actions currently handles:
 
-- Network intrusion detection
-- Malicious traffic classification
-- Security event analysis
-- Cybersecurity-focused ML experimentation
+- dependency installation
+- Python syntax/compile checks
+- `pytest` execution when a `tests/` directory exists
+- Docker build and push to Amazon ECR
+- container deployment on the self-hosted runner
 
-## Extra Features
+Workflow file:
 
-- Real-time streaming inference
-- Model versioning and experiment tracking
-- CI/CD based deployment pipeline
-- Improved monitoring and alerting
-- Cloud-native deployment support
+- `.github/workflows/main.yml`
 
-## Author
+## Current Notes
 
-**Srijan Jaiswal**
+- The app expects `final_models/` artifacts to exist before prediction.
+- `final_models/` is currently present in the repository and used directly by the app.
+- The repository also contains historical artifact and cache files from previous local runs.
 
-- GitHub: https://github.com/ionfwsrijan
-- LinkedIn: https://www.linkedin.com/in/srijan-jaiswal-ds
