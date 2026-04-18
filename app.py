@@ -20,6 +20,23 @@ from networksecurity.utils.main_utils.utils import load_object
 
 from networksecurity.utils.ml_utils.model.estimator import NetworkModel
 
+PREPROCESSOR_FILE_PATH = "final_models/preprocessor.pkl"
+MODEL_FILE_PATH = "final_models/model.pkl"
+
+
+def load_network_model() -> NetworkModel | None:
+    try:
+        if not os.path.exists(PREPROCESSOR_FILE_PATH) or not os.path.exists(MODEL_FILE_PATH):
+            logging.warning("Prediction artifacts are not available yet.")
+            return None
+
+        preprocessor = load_object(PREPROCESSOR_FILE_PATH)
+        final_model = load_object(MODEL_FILE_PATH)
+        return NetworkModel(preprocessor=preprocessor, model=final_model)
+    except Exception as e:
+        raise NetworkSecurityException(e, sys)
+
+
 app = FastAPI()
 origins = ["*"]
 
@@ -34,6 +51,10 @@ app.add_middleware(
 from fastapi.templating import Jinja2Templates
 templates = Jinja2Templates(directory="./templates")
 
+@app.on_event("startup")
+async def startup_event():
+    app.state.network_model = load_network_model()
+
 @app.get("/", tags=["authentication"])
 async def index():
     return RedirectResponse(url="/docs")
@@ -43,6 +64,7 @@ async def train_route():
     try:
         train_pipeline=TrainingPipeline()
         train_pipeline.run_pipeline()
+        app.state.network_model = load_network_model()
         return Response("Training is successful")
     except Exception as e:
         raise NetworkSecurityException(e,sys)
@@ -51,9 +73,9 @@ async def train_route():
 async def predict_route(request: Request,file: UploadFile = File(...)):
     try:
         df=pd.read_csv(file.file)
-        preprocesor=load_object("final_models/preprocessor.pkl")
-        final_model=load_object("final_models/model.pkl")
-        network_model = NetworkModel(preprocessor=preprocesor,model=final_model)
+        network_model = getattr(app.state, "network_model", None)
+        if network_model is None:
+            raise FileNotFoundError("Prediction model is not loaded. Train the model or add artifacts to final_models.")
         print(df.iloc[0])
         y_pred = network_model.predict(df)
         print(y_pred)
