@@ -5,12 +5,13 @@ from dotenv import load_dotenv
 load_dotenv()
 mongo_db_url = os.getenv("MONGO_DB_URL") or os.getenv("MONGODB_URL_KEY")
 app_port = int(os.getenv("PORT", "8000"))
+train_api_key = os.getenv("TRAIN_API_KEY")
 from networksecurity.exception.exception import NetworkSecurityException
 from networksecurity.logging.logger import logging
 from networksecurity.pipeline.training_pipeline import TrainingPipeline
 
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi import FastAPI, File, UploadFile,Request
+from fastapi import FastAPI, File, UploadFile,Request, Header, HTTPException, status
 from uvicorn import run as app_run
 from fastapi.responses import Response
 from starlette.responses import RedirectResponse
@@ -37,6 +38,14 @@ def load_network_model() -> NetworkModel | None:
         raise NetworkSecurityException(e, sys)
 
 
+def authorize_train_request(api_key: str | None) -> None:
+    if train_api_key and api_key != train_api_key:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid or missing training API key.",
+        )
+
+
 app = FastAPI()
 origins = ["*"]
 
@@ -59,9 +68,10 @@ async def startup_event():
 async def index():
     return RedirectResponse(url="/docs")
 
-@app.get("/train")
-async def train_route():
+@app.post("/train")
+async def train_route(x_api_key: str | None = Header(default=None, alias="x-api-key")):
     try:
+        authorize_train_request(x_api_key)
         train_pipeline=TrainingPipeline()
         train_pipeline.run_pipeline()
         app.state.network_model = load_network_model()
