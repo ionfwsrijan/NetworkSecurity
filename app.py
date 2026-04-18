@@ -9,6 +9,8 @@ train_api_key = os.getenv("TRAIN_API_KEY")
 from networksecurity.exception.exception import NetworkSecurityException
 from networksecurity.logging.logger import logging
 from networksecurity.pipeline.training_pipeline import TrainingPipeline
+from networksecurity.cloud.s3_syncer import S3Sync
+from networksecurity.constant.training_pipeline import TRAINING_BUCKET_NAME
 
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi import FastAPI, File, UploadFile,Request, Header, HTTPException, status
@@ -23,12 +25,20 @@ from networksecurity.utils.ml_utils.model.estimator import NetworkModel
 
 PREPROCESSOR_FILE_PATH = "final_models/preprocessor.pkl"
 MODEL_FILE_PATH = "final_models/model.pkl"
+LATEST_MODEL_S3_URI = f"s3://{TRAINING_BUCKET_NAME}/final_models/latest"
 
 
 def load_network_model() -> NetworkModel | None:
     try:
         if not os.path.exists(PREPROCESSOR_FILE_PATH) or not os.path.exists(MODEL_FILE_PATH):
-            logging.warning("Prediction artifacts are not available yet.")
+            logging.info("Prediction artifacts are missing locally. Attempting to sync from %s", LATEST_MODEL_S3_URI)
+            try:
+                S3Sync().sync_folder_from_s3(folder="final_models", aws_bucket_url=LATEST_MODEL_S3_URI)
+            except Exception as sync_error:
+                logging.warning("Unable to sync prediction artifacts from S3: %s", sync_error)
+
+        if not os.path.exists(PREPROCESSOR_FILE_PATH) or not os.path.exists(MODEL_FILE_PATH):
+            logging.warning("Prediction artifacts are not available locally or in S3 sync target.")
             return None
 
         preprocessor = load_object(PREPROCESSOR_FILE_PATH)
